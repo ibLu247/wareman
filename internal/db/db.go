@@ -2,17 +2,20 @@ package db
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"go.uber.org/zap"
 )
 
 var Conn *pgx.Conn
 
 func ConnectDB() {
-	_, err := pgx.Connect(context.Background(), "postgres://postgres:password@localhost:5432/postgres")
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
+	var err error
+	Conn, err = pgx.Connect(context.Background(), "postgres://postgres:password@localhost:5432/postgres")
 	if err != nil {
-		fmt.Println("Ошибка подключения к серверу PostgreSQL")
+		logger.Fatal("Не удалось подключиться к бд")
 	}
 }
 
