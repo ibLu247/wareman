@@ -21,5 +21,9 @@ func main() {
 	router.PATCH("/api/inventory", handlers.UpdateQuantity)
 	router.PATCH("/api/inventory-discount", handlers.AddDiscount)
 	router.GET("/api/inventories", handlers.GetInventories)
+	router.GET("/api/inventory", handlers.GetProductsFromWarehouse)
+	router.GET("/api/inventory/:id", handlers.GetProductFromWarehouse)
+	router.POST("/api/inventory/:id", handlers.GetSum)
+	router.POST("/inventory/:id", handlers.BuyProducts)
 	router.Run()
 }

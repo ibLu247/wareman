@@ -3,6 +3,7 @@ CREATE TABLE inventory (
     quantity INT,
     price DECIMAL(10, 2),
     discount DECIMAL(10, 2),
+    discounted_price DECIMAL(10, 2),
     product_id UUID REFERENCES products(id),
     warehouse_id UUID REFERENCES warehouses(id)
 );

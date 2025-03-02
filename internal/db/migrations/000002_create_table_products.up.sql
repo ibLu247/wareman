@@ -1,8 +1,8 @@
 CREATE TABLE products (
     id UUID PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100),
     description TEXT,
     characteristics JSONB,
-    weight FLOAT,
+    weight DECIMAL(10, 2),
     barcode INT UNIQUE
 );

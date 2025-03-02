@@ -18,12 +18,22 @@ type Product struct {
 	Barcode         int               `json:"barcode"`
 }
 
-// Модель инвентаризация
+// Модель инвентаризации
 type Inventory struct {
-	ID          uuid.UUID `json:"id"`
-	Quantity    int       `json:"quantity"`
-	Price       float32   `json:"price"`
-	Discount    float32   `json:"discount"`
-	ProductID   uuid.UUID `json:"product_id"`
-	WarehouseID uuid.UUID `json:"warehouse_id"`
+	ID              uuid.UUID `json:"id"`
+	Quantity        int       `json:"quantity"`
+	Price           float32   `json:"price"`
+	Discount        float32   `json:"discount"`
+	DiscountedPrice float32   `json:"discounted_price"`
+	ProductID       uuid.UUID `json:"product_id"`
+	WarehouseID     uuid.UUID `json:"warehouse_id"`
+}
+
+// Модель аналитики
+type Analytic struct {
+	ID                   uuid.UUID `json:"id"`
+	WarehouseID          uuid.UUID `json:"warehouse_id"`
+	ProductID            uuid.UUID `json:"product_id"`
+	QuantitySoldProducts int       `json:"quantity_sold_products"`
+	TotalSum             float32   `json:"total_sum"`
 }
