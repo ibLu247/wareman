@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: Wareman API
+  description: API для системы Wareman
+  version: 1.0.0
+paths:
+  /api/health:
+    get:
+      summary: Проверка состояния сервиса
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+  /api/warehouse:
+    post:
+      summary: Создание нового склада
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address:
+                  type: string
+                  description: Адрес склада
+                  example: "Ленина 5"
+      responses:
+        201:
+          description: Склад успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: ID созданного склада
+                    example: 1
+                  address:
+                    type: string
+                    description: Адрес склада
+                    example: "Ленина 5"
+  /api/warehouses:
+    get:
+      summary: Получение списка всех складов
+      description: Возвращает список всех складов с их адресами
+      responses:
+        200:
+          description: Список складов успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: ID склада
+                      example: 1
+                    address:
+                      type: string
+                      description: Адрес склада
+                      example: "Ленина 5"
+  /api/products:
+    get:
+      summary: Получение списка продуктов
+      responses:
+        200:
+          description: Список продуктов успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: Уникальный идентификатор продукта (UUID)
+                      example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                    name:
+                      type: string
+                      description: Название продукта
+                      example: "Зубная паста"
+                    description:
+                      type: string
+                      description: Описание продукта
+                      example: "Вкусная"
+                    characteristics:
+                      type: object
+                      description: Характеристики продукта (ключ-значение)
+                      additionalProperties:
+                        type: string
+                      example:
+                        taste: "мята"
+                    weight:
+                      type: integer
+                      description: Вес продукта
+                      example: 100
+                    barcode:
+                      type: integer
+                      description: Штрихкод продукта
+                      example: 123456789
+  /api/product/{id}:
+    patch:
+      summary: Обновление описания и/или характеристик товара
+      description: Обновляет описание и/или характеристики товара по указанному ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Уникальный идентификатор продукта (UUID)
+          schema:
+            type: string
+            example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: Новое описание продукта (необязательно для обновления)
+                  example: "Новое описание товара"
+                characteristics:
+                  type: object
+                  description: Новые характеристики товара (необязательно для обновления)
+                  additionalProperties:
+                    type: string
+                  example:
+                    color: "blue"
+                    size: "L"
+      responses:
+        200:
+          description: Описание и/или характеристики товара успешно обновлены
+  /api/inventory:
+    post:
+      summary: Создание связи товара со складом
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  description: Количество товара на складе
+                  example: 100
+                price:
+                  type: number
+                  format: float
+                  description: Цена товара без учета скидки
+                  example: 20.00
+                discount:
+                  type: number
+                  format: float
+                  description: Скидка на товар в процентах
+                  example: 20.00
+                discounted_price:
+                  type: number
+                  format: float
+                  description: Цена товара после применения скидки
+                  example: 16.00
+                product_id:
+                  type: string
+                  description: Уникальный идентификатор товара (UUID)
+                  example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                warehouse_id:
+                  type: string
+                  description: Уникальный идентификатор склада (UUID)
+                  example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+      responses:
+        201:
+          description: Связь товара со складом успешно создана
+  /api/inventory:
+    patch:
+      summary: Обновляет количество товара на складе, увеличивая его на указанное количество
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  description: Количество товара для поступления на склад
+                  example: 200
+                product_id:
+                  type: string
+                  description: Уникальный идентификатор товара (UUID)
+                  example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                warehouse_id:
+                  type: string
+                  description: Уникальный идентификатор склада (UUID)
+                  example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+      responses:
+        200:
+          description: Количество товара на складе успешно обновлено
+  /api/inventory/discount:
+    patch:
+      summary: Обновление скидки на товар на определенном складе
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discount:
+                  type: number
+                  format: float
+                  description: Скидка на товар в процентах
+                  example: 10.00
+                product_id:
+                  type: string
+                  description: Уникальный идентификатор товара (UUID)
+                  example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                warehouse_id:
+                  type: string
+                  description: Уникальный идентификатор склада (UUID)
+                  example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+      responses:
+        200:
+          description: Скидка на товар успешно обновлена
+  /api/inventory/{id}:
+    get:
+      summary: Получить всю информацию о товаре
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Уникальный идентификатор товара (UUID)
+          schema:
+            type: string
+            example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+        - in: query
+          name: warehouse_id
+          required: true
+          description: Уникальный идентификатор склада (UUID)
+          schema:
+            type: string
+            example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+      responses:
+        200:
+          description: Информация о товаре успешно получена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Уникальный идентификатор товара (UUID)
+                    example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                  name:
+                    type: string
+                    description: Название товара
+                    example: "Продукт 1"
+                  description:
+                    type: string
+                    description: Описание товара
+                    example: "Описание товара"
+                  quantity:
+                    type: integer
+                    description: Количество товара на складе
+                    example: 300
+                  price:
+                    type: number
+                    format: float
+                    description: Цена товара
+                    example: 20.20
+                  discount:
+                    type: number
+                    format: float
+                    description: Скидка на товар
+                    example: 20.20
+                  discounted_price:
+                    type: number
+                    format: float
+                    description: Цена товара после скидки
+                    example: 16.00
+  /api/inventory/{id}:
+    post:
+      summary: Получить подсуммировку цен списка товаров на конкретном складе
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Уникальный идентификатор склада (UUID)
+          schema:
+            type: string
+            example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  product_id:
+                    type: string
+                    description: Уникальный идентификатор товара (UUID)
+                    example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                  quantity:
+                    type: integer
+                    description: Количество товара
+                    example: 10
+      responses:
+        200:
+          description: Подсуммированная информация о цене товаров успешно получена
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    product_id:
+                      type: string
+                      description: Уникальный идентификатор товара (UUID)
+                      example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                    total_price:
+                      type: number
+                      format: float
+                      description: Общая стоимость товара на складе с учетом запрошенного количества
+                      example: 200
+  /api/inventory/product/{id}:
+    post:
+      summary: Покупка товаров
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Уникальный идентификатор склада (UUID)
+          schema:
+            type: string
+            example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  product_id:
+                    type: string
+                    description: Уникальный идентификатор товара (UUID)
+                    example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                  quantity:
+                    type: integer
+                    description: Количество товара для покупки
+                    example: 100
+      responses:
+        200:
+          description: Товары куплены и количество на складе обновлено

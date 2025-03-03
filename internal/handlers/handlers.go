@@ -128,7 +128,7 @@ func AddInventory(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
-// Обновить количество товара
+// Поступление товара на склад
 func UpdateQuantity(c *gin.Context) {
 	var inventory models.Inventory
 
