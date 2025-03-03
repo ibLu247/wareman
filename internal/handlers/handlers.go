@@ -4,12 +4,28 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ibLu247/wareman.git/internal/db"
 	"github.com/ibLu247/wareman.git/internal/models"
+	"go.uber.org/zap"
 )
+
+// Функция проверяет на валидность данные в теле запроса
+func ValidateJSON(c *gin.Context, value interface{}) bool {
+	if err := c.BindJSON(value); err != nil {
+		logger := c.MustGet("logger").(*zap.Logger)
+		logger.Error("Невалидные данные", zap.Error(err))
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Ошибка": "Невалидные данные",
+		})
+		return false
+	}
+	return true
+}
 
 func Healthcheck(c *gin.Context) {
 	c.Status(http.StatusOK)
@@ -18,20 +34,26 @@ func Healthcheck(c *gin.Context) {
 // Добавить склад
 func AddWarehouse(c *gin.Context) {
 	var warehouse models.Warehouse
-	if err := c.BindJSON(&warehouse); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Ошибка": "Неверный запрос"})
+
+	if !ValidateJSON(c, &warehouse) {
 		return
 	}
-	id := uuid.New() // Генерация нового UUID
-	db.Conn.Exec(context.Background(), "INSERT INTO warehouses (id, address) VALUES ($1, $2)", id, warehouse.Address)
+
+	id := uuid.New()
+
+	var sql string = "INSERT INTO warehouses (id, address) VALUES ($1, $2)"
+	db.Conn.Exec(context.Background(), sql, id, warehouse.Address)
 
 	c.Status(http.StatusCreated)
 }
 
 // Получить список складов
 func GetWarehouses(c *gin.Context) {
-	values, _ := db.Conn.Query(context.Background(), "SELECT * FROM warehouses")
 	var warehouses []models.Warehouse
+	var sql string = "SELECT * FROM warehouses"
+
+	values, _ := db.Conn.Query(context.Background(), sql)
+
 	for values.Next() {
 		var warehouse models.Warehouse
 		values.Scan(&warehouse.ID, &warehouse.Address)
@@ -44,12 +66,14 @@ func GetWarehouses(c *gin.Context) {
 // Добавить товар
 func AddProduct(c *gin.Context) {
 	var product models.Product
-	if err := c.BindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Ошибка": "Неверный запрос"})
+
+	if !ValidateJSON(c, &product) {
 		return
 	}
+
 	id := uuid.New()
 	characteristics, _ := json.Marshal(product.Сharacteristics)
+
 	var sql string = "INSERT INTO products(id, name, description, characteristics, weight, barcode) VALUES($1, $2, $3, $4, $5, $6)"
 	db.Conn.Exec(context.Background(), sql, id, product.Name, product.Description, characteristics, product.Weight, product.Barcode)
 
@@ -58,8 +82,11 @@ func AddProduct(c *gin.Context) {
 
 // Получить список всех товаров
 func GetProducts(c *gin.Context) {
-	values, _ := db.Conn.Query(context.Background(), "SELECT id, name, description, characteristics, weight, barcode FROM products")
 	var products []models.Product
+
+	var sql string = "SELECT * FROM products"
+	values, _ := db.Conn.Query(context.Background(), sql)
+
 	for values.Next() {
 		var product models.Product
 		values.Scan(&product.ID, &product.Name, &product.Description, &product.Сharacteristics, &product.Weight, &product.Barcode)
@@ -71,14 +98,17 @@ func GetProducts(c *gin.Context) {
 
 // Обновить товар
 func UpdateProduct(c *gin.Context) {
-	productID := c.Param("id")
-
 	var updatedProduct models.Product
 
-	c.BindJSON(&updatedProduct)
+	productID := c.Param("id")
+
+	if !ValidateJSON(c, &updatedProduct) {
+		return
+	}
 	characteristicsJSON, _ := json.Marshal(updatedProduct.Сharacteristics)
 
-	db.Conn.Exec(context.Background(), "UPDATE products SET description = $1, characteristics = $2 WHERE id = $3", updatedProduct.Description, characteristicsJSON, productID)
+	var sql string = "UPDATE products SET description = $1, characteristics = $2 WHERE id = $3"
+	db.Conn.Exec(context.Background(), sql, updatedProduct.Description, characteristicsJSON, productID)
 
 	c.Status(http.StatusOK)
 }
@@ -87,8 +117,7 @@ func UpdateProduct(c *gin.Context) {
 func AddInventory(c *gin.Context) {
 	var inventory models.Inventory
 
-	if err := c.BindJSON(&inventory); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Ошибка": "Неверный запрос"})
+	if !ValidateJSON(c, &inventory) {
 		return
 	}
 	id := uuid.New()
@@ -103,7 +132,9 @@ func AddInventory(c *gin.Context) {
 func UpdateQuantity(c *gin.Context) {
 	var inventory models.Inventory
 
-	c.BindJSON(&inventory)
+	if !ValidateJSON(c, &inventory) {
+		return
+	}
 
 	var sql string = "UPDATE inventory SET quantity = quantity + $1 WHERE product_id = $2 AND warehouse_id = $3"
 	db.Conn.Exec(context.Background(), sql, inventory.Quantity, inventory.ProductID, inventory.WarehouseID)
@@ -111,31 +142,22 @@ func UpdateQuantity(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// Получить список инвентаризаций (ВРЕМЕННО)
-func GetInventories(c *gin.Context) {
-	values, _ := db.Conn.Query(context.Background(), "SELECT * FROM inventory")
-
-	var inventories []models.Inventory
-	for values.Next() {
-		var inventory models.Inventory
-		values.Scan(&inventory.ID, &inventory.Quantity, &inventory.Price, &inventory.Discount, &inventory.ProductID, &inventory.WarehouseID)
-		inventories = append(inventories, inventory)
-	}
-
-	c.JSON(http.StatusOK, inventories)
-}
-
 // Создать скидку
 func AddDiscount(c *gin.Context) {
 	var inventory models.Inventory
 
-	c.BindJSON(&inventory)
+	if !ValidateJSON(c, &inventory) {
+		return
+	}
+
 	var price float32
-	db.Conn.QueryRow(context.Background(), "SELECT price FROM inventory").Scan(&price)
+
+	var sql string = "SELECT price FROM inventory WHERE product_id = $1 AND warehouse_id = $2"
+	db.Conn.QueryRow(context.Background(), sql, inventory.ProductID, inventory.WarehouseID).Scan(&price)
 
 	var discountedPrice float32 = price - ((price / 100) * inventory.Discount)
 
-	var sql string = "UPDATE inventory SET discount = $1, discounted_price = $2 WHERE product_id = $3 AND warehouse_id = $4"
+	sql = "UPDATE inventory SET discount = $1, discounted_price = $2 WHERE product_id = $3 AND warehouse_id = $4"
 	db.Conn.Exec(context.Background(), sql, inventory.Discount, discountedPrice, inventory.ProductID, inventory.WarehouseID)
 
 	c.Status(http.StatusOK)
@@ -151,9 +173,18 @@ func GetProductsFromWarehouse(c *gin.Context) {
 	}
 
 	warehouseID := c.Query("warehouse_id")
+	page, _ := strconv.Atoi(c.Query("page"))
+	limit, _ := strconv.Atoi(c.Query("limit"))
 
-	var sql string = "SELECT products.id, products.name, inventory.price, inventory.discounted_price FROM products JOIN inventory ON inventory.product_id = products.id WHERE inventory.warehouse_id = $1"
-	values, _ := db.Conn.Query(context.Background(), sql, warehouseID)
+	var offset int = (page - 1) * limit
+
+	var sql string = `
+						SELECT products.id, products.name, inventory.price, inventory.discounted_price 
+						FROM products JOIN inventory ON inventory.product_id = products.id 
+						WHERE inventory.warehouse_id = $1
+						LIMIT $2 OFFSET $3
+					`
+	values, _ := db.Conn.Query(context.Background(), sql, warehouseID, limit, offset)
 
 	var products []Product
 	for values.Next() {
@@ -182,7 +213,11 @@ func GetProductFromWarehouse(c *gin.Context) {
 	productID := c.Param("id")
 	warehouseID := c.Query("warehouse_id")
 
-	var sql string = "SELECT products.id, products.name, products.description, products.characteristics, products.weight, products.barcode, inventory.price, inventory.discounted_price, inventory.quantity FROM products JOIN inventory ON inventory.product_id = products.id WHERE inventory.product_id = $1 AND inventory.warehouse_id = $2"
+	var sql string = `
+						SELECT products.id, products.name, products.description, products.characteristics, products.weight, products.barcode, inventory.price, inventory.discounted_price, inventory.quantity 
+						FROM products JOIN inventory ON inventory.product_id = products.id 
+						WHERE inventory.product_id = $1 AND inventory.warehouse_id = $2
+					`
 	values, _ := db.Conn.Query(context.Background(), sql, productID, warehouseID)
 
 	var product Product
@@ -210,13 +245,16 @@ func GetSum(c *gin.Context) {
 	warehouseID := c.Param("id")
 
 	var req []Req
-	c.BindJSON(&req)
+	if !ValidateJSON(c, &req) {
+		return
+	}
 
 	var res []Res
 	var price float32
 
 	for _, item := range req {
-		values, _ := db.Conn.Query(context.Background(), "SELECT price FROM inventory WHERE warehouse_id = $1 AND product_id = $2", warehouseID, item.ProductID)
+		var sql string = "SELECT price FROM inventory WHERE warehouse_id = $1 AND product_id = $2"
+		values, _ := db.Conn.Query(context.Background(), sql, warehouseID, item.ProductID)
 		values.Next()
 		values.Scan(&price)
 		totalPrice := float32(item.Quantity) * price
@@ -239,13 +277,14 @@ func BuyProducts(c *gin.Context) {
 	warehouseID := c.Param("id")
 
 	var req []Req
-	c.BindJSON(&req)
+	if !ValidateJSON(c, &req) {
+		return
+	}
 
 	for _, item := range req {
 		var currentProducts int
 		var discountedPrice float32
 		var price float32
-		var currentPrice float32
 
 		var sql string = "SELECT quantity, discounted_price, price FROM inventory WHERE warehouse_id = $1 AND product_id = $2"
 		db.Conn.QueryRow(context.Background(), sql, warehouseID, item.ProductID).Scan(&currentProducts, &discountedPrice, &price)
@@ -255,24 +294,86 @@ func BuyProducts(c *gin.Context) {
 			return
 		}
 
-		if discountedPrice != 0 {
-			currentPrice = discountedPrice
-		} else {
-			currentPrice = price
-		}
 		db.Conn.Exec(context.Background(), "UPDATE inventory SET quantity = quantity - $1 WHERE warehouse_id = $2 AND product_id = $3", item.Quantity, warehouseID, item.ProductID)
 
-		id := uuid.New()
-		sql = `
-    			INSERT INTO analytics (id, warehouse_id, product_id, quantity_sold_products, total_sum) 
-    			VALUES ($1, $2, $3, $4, $5) 
-				ON CONFLICT (warehouse_id, product_id) 
-    			DO UPDATE SET 
-        			quantity_sold_products = analytics.quantity_sold_products + EXCLUDED.quantity_sold_products, 
-        			total_sum = analytics.total_sum + EXCLUDED.total_sum
-			`
-		db.Conn.Exec(context.Background(), sql, id, warehouseID, item.ProductID, item.Quantity, currentPrice)
+		// Запись аналитики при покупке
+		CreateAnalytics(warehouseID, item.ProductID, item.Quantity, price, discountedPrice)
 	}
 
 	c.Status(http.StatusOK)
+}
+
+// Создать аналитику при покупке товара
+func CreateAnalytics(warehouseID string, productID uuid.UUID, quantity int, price float32, discountedPrice float32) {
+
+	var currentPrice float32
+	if discountedPrice != 0 {
+		currentPrice = discountedPrice
+	} else {
+		currentPrice = price
+	}
+
+	id := uuid.New()
+	var sql string = `
+						INSERT INTO analytics (id, warehouse_id, product_id, quantity_sold_products, total_sum) 
+						VALUES ($1, $2, $3, $4, $5) 
+						ON CONFLICT (warehouse_id, product_id) 
+						DO UPDATE SET 
+							quantity_sold_products = analytics.quantity_sold_products + EXCLUDED.quantity_sold_products, 
+							total_sum = analytics.total_sum + EXCLUDED.total_sum
+					`
+
+	db.Conn.Exec(context.Background(), sql, id, warehouseID, productID, quantity, currentPrice)
+}
+
+// Получить аналитику по складу по каждому товару
+func GetAnalytic(c *gin.Context) {
+	type Analytic struct {
+		ProductID uuid.UUID `json:"product_id"`
+		Quantity  int       `json:"quantity"`
+		TotalSum  float32   `json:"total_sum"`
+	}
+
+	warehouseID := c.Param("id")
+
+	var analytics []Analytic
+
+	var sql string = "SELECT product_id, quantity_sold_products, total_sum FROM analytics WHERE warehouse_id = $1"
+	values, _ := db.Conn.Query(context.Background(), sql, warehouseID)
+
+	for values.Next() {
+		var analytic Analytic
+		values.Scan(&analytic.ProductID, &analytic.Quantity, &analytic.TotalSum)
+		analytics = append(analytics, analytic)
+	}
+
+	c.JSON(http.StatusOK, analytics)
+}
+
+// Получить топ 10 складов которые сделали больше всего выручки
+func GetMostWarehouses(c *gin.Context) {
+	type Analytic struct {
+		WarehouseID uuid.UUID `json:"warehouse_id"`
+		Address     string    `json:"address"`
+		TotalSum    float32   `json:"total_sum"`
+	}
+
+	var sql string = `
+						SELECT warehouses.id, warehouses.address, SUM(analytics.total_sum) AS total
+						FROM analytics
+						JOIN warehouses ON analytics.warehouse_id = warehouses.id
+						GROUP BY warehouses.id, warehouses.address
+						ORDER BY total DESC
+						LIMIT 10;
+					`
+	values, _ := db.Conn.Query(context.Background(), sql)
+
+	var analytics []Analytic
+	for values.Next() {
+		var analytic Analytic
+		values.Scan(&analytic.WarehouseID, &analytic.Address, &analytic.TotalSum)
+		analytics = append(analytics, analytic)
+	}
+
+	c.JSON(http.StatusOK, analytics)
 }
