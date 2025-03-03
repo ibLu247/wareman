@@ -11,12 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ibLu247/wareman.git/internal/db"
 	"github.com/ibLu247/wareman.git/internal/handlers"
+	"github.com/ibLu247/wareman.git/internal/logger"
+	"github.com/ibLu247/wareman.git/internal/middleware"
 )
 
 func main() {
+	log := logger.NewLogger()
 	db.ConnectDB()
 
 	router := gin.Default()
+
+	router.Use(middleware.AddReqID(log))
 
 	router.GET("/api/health", handlers.Healthcheck)
 
@@ -50,7 +55,7 @@ func main() {
 	gracefulShutdown(server)
 }
 
-func gracefulShutdown(s *http.Server) {
+func gracefulShutdown(server *http.Server) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
@@ -60,5 +65,5 @@ func gracefulShutdown(s *http.Server) {
 
 	db.DisconnectDB()
 
-	_ = s.Shutdown(ctx)
+	_ = server.Shutdown(ctx)
 }
