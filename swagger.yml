@@ -369,3 +369,63 @@ paths:
       responses:
         200:
           description: Товары куплены и количество на складе обновлено
+  /api/analytic/{id}:
+  get:
+    summary: Получение аналитики по конкретному складу
+    parameters:
+      - in: path
+        name: id
+        required: true
+        description: Уникальный идентификатор склада (UUID)
+        schema:
+          type: string
+          example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+    responses:
+      200:
+        description: Успешный ответ с аналитикой по складу
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  product_id:
+                    type: string
+                    description: Уникальный идентификатор товара (UUID)
+                    example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                  quantity:
+                    type: integer
+                    description: Количество товара на складе
+                    example: 100
+                  total_sum:
+                    type: number
+                    format: float
+                    description: Общая стоимость товара на складе
+                    example: 1200.20
+  /api/analytics:
+  get:
+    summary: Получение аналитики по 10 складам, которые сделали больше всего выручки
+    responses:
+      200:
+        description: Успешный ответ с аналитикой по складам
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  warehouse_id:
+                    type: string
+                    description: Уникальный идентификатор склада (UUID)
+                    example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+                  address:
+                    type: string
+                    description: Адрес склада
+                    example: "г. Москва, ул. Ленина, д. 10"
+                  total_sum:
+                    type: number
+                    format: float
+                    description: Общая выручка склада
+                    example: 8600.20

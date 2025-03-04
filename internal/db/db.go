@@ -11,6 +11,7 @@ import (
 var Conn *pgx.Conn
 
 func ConnectDB() {
+	logger.NewLogger()
 	var err error
 	Conn, err = pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {

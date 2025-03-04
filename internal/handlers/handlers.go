@@ -306,14 +306,17 @@ func BuyProducts(c *gin.Context) {
 // Создать аналитику при покупке товара
 func CreateAnalytics(warehouseID string, productID uuid.UUID, quantity int, price float32, discountedPrice float32) {
 
-	var currentPrice float32
+	var currentPrice float32 // Переменная хранит в себе либо цену без скидки либо цену со скидкой
 	if discountedPrice != 0 {
 		currentPrice = discountedPrice
 	} else {
 		currentPrice = price
 	}
 
+	var total_sum float32 = currentPrice * float32(quantity) // Переменная хранит в себе сумму на которую была совершена покупка
+
 	id := uuid.New()
+
 	var sql string = `
 						INSERT INTO analytics (id, warehouse_id, product_id, quantity_sold_products, total_sum) 
 						VALUES ($1, $2, $3, $4, $5) 
@@ -322,8 +325,7 @@ func CreateAnalytics(warehouseID string, productID uuid.UUID, quantity int, pric
 							quantity_sold_products = analytics.quantity_sold_products + EXCLUDED.quantity_sold_products, 
 							total_sum = analytics.total_sum + EXCLUDED.total_sum
 					`
-
-	db.Conn.Exec(context.Background(), sql, id, warehouseID, productID, quantity, currentPrice)
+	db.Conn.Exec(context.Background(), sql, id, warehouseID, productID, quantity, total_sum)
 }
 
 // Получить аналитику по складу по каждому товару
