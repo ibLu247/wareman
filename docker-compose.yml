@@ -19,7 +19,7 @@ services:
     container_name: migrate
     depends_on:
       - postgres
-    command: ["migrate", "up", "-database", "postgres://postgres:password@postgres:5432/postgres?sslmode=disable"]
+    command: ["migrate", "-database", "postgres://postgres:password@postgres:5432/postgres?sslmode=disable", "up"]
     environment:
       DATABASE_URL: "postgres://postgres:password@postgres:5432/postgres?sslmode=disable"
     restart: "no"
