@@ -69,6 +69,77 @@ paths:
                       type: string
                       description: Адрес склада
                       example: "Ленина 5"
+  /api/product:
+    post:
+      summary: Создание нового продукта
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Название продукта
+                  example: "Зубная паста"
+                description:
+                  type: string
+                  description: Описание продукта
+                  example: "Вкусная"
+                characteristics:
+                  type: object
+                  description: Характеристики продукта (ключ-значение)
+                  additionalProperties:
+                    type: string
+                  example:
+                    taste: "мята"
+                    flavor: "мятный"
+                weight:
+                  type: number
+                  format: float
+                  description: Вес продукта
+                  example: 100.5
+                barcode:
+                  type: integer
+                  description: Штрихкод продукта
+                  example: 123456789
+    responses:
+      201:
+        description: Продукт успешно создан
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: Уникальный идентификатор продукта (UUID)
+                  example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                name:
+                  type: string
+                  description: Название продукта
+                  example: "Зубная паста"
+                description:
+                  type: string
+                  description: Описание продукта
+                  example: "Вкусная"
+                characteristics:
+                  type: object
+                  description: Характеристики продукта (ключ-значение)
+                  additionalProperties:
+                    type: string
+                  example:
+                    taste: "мята"
+                weight:
+                  type: number
+                  format: float
+                  description: Вес продукта
+                  example: 100.5
+                barcode:
+                  type: integer
+                  description: Штрихкод продукта
+                  example: 123456789
   /api/products:
     get:
       summary: Получение списка продуктов
@@ -234,9 +305,62 @@ paths:
       responses:
         200:
           description: Скидка на товар успешно обновлена
+  /api/inventory:
+    get:
+      summary: Получить список товаров по конкретному складу с пагинацией
+      parameters:
+        - name: warehouse_id
+          in: query
+          required: true
+          schema:
+            type: string
+            description: Уникальный идентификатор склада (UUID)
+            example: "57238bde-3ce8-466e-843c-736d8d704764"
+        - name: page
+          in: query
+          required: true
+          schema:
+            type: integer
+            description: Номер страницы для пагинации
+            example: 1
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            description: Количество товаров на одной странице
+            example: 1
+      responses:
+        200:
+          description: Список товаров по складу успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    product_id:
+                      type: string
+                      description: Уникальный идентификатор товара (UUID)
+                      example: "3d0818eb-b0f3-4da8-838d-ba702eae66fe"
+                    name:
+                      type: string
+                      description: Название товара
+                      example: "Зубная паста"
+                    price:
+                      type: number
+                      format: float
+                      description: Цена товара
+                      example: 20.50
+                    discounted_price:
+                      type: number
+                      format: float
+                      description: Скидочная цена товара
+                      example: 0.00
   /api/inventory/{id}:
     get:
-      summary: Получить всю информацию о товаре
+      summary: Получить всю информацию о товаре на складе
       parameters:
         - in: path
           name: id
@@ -370,62 +494,62 @@ paths:
         200:
           description: Товары куплены и количество на складе обновлено
   /api/analytic/{id}:
-  get:
-    summary: Получение аналитики по конкретному складу
-    parameters:
-      - in: path
-        name: id
-        required: true
-        description: Уникальный идентификатор склада (UUID)
-        schema:
-          type: string
-          example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
-    responses:
-      200:
-        description: Успешный ответ с аналитикой по складу
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                type: object
-                properties:
-                  product_id:
-                    type: string
-                    description: Уникальный идентификатор товара (UUID)
-                    example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
-                  quantity:
-                    type: integer
-                    description: Количество товара на складе
-                    example: 100
-                  total_sum:
-                    type: number
-                    format: float
-                    description: Общая стоимость товара на складе
-                    example: 1200.20
+    get:
+      summary: Получение аналитики по конкретному складу
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Уникальный идентификатор склада (UUID)
+          schema:
+            type: string
+            example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+      responses:
+        200:
+          description: Успешный ответ с аналитикой по складу
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    product_id:
+                      type: string
+                      description: Уникальный идентификатор товара (UUID)
+                      example: "9a69820c-79f4-46f0-9bfc-e1ef4032fffb"
+                    quantity:
+                      type: integer
+                      description: Количество товара на складе
+                      example: 100
+                    total_sum:
+                      type: number
+                      format: float
+                      description: Общая стоимость товара на складе
+                      example: 1200.20
   /api/analytics:
-  get:
-    summary: Получение аналитики по 10 складам, которые сделали больше всего выручки
-    responses:
-      200:
-        description: Успешный ответ с аналитикой по складам
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                type: object
-                properties:
-                  warehouse_id:
-                    type: string
-                    description: Уникальный идентификатор склада (UUID)
-                    example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
-                  address:
-                    type: string
-                    description: Адрес склада
-                    example: "г. Москва, ул. Ленина, д. 10"
-                  total_sum:
-                    type: number
-                    format: float
-                    description: Общая выручка склада
-                    example: 8600.20
+    get:
+      summary: Получение аналитики по 10 складам, которые сделали больше всего выручки
+      responses:
+        200:
+          description: Успешный ответ с аналитикой по складам
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    warehouse_id:
+                      type: string
+                      description: Уникальный идентификатор склада (UUID)
+                      example: "2c6a90c1-78e8-4f03-9672-b561108b06ab"
+                    address:
+                      type: string
+                      description: Адрес склада
+                      example: "г. Москва, ул. Ленина, д. 10"
+                    total_sum:
+                      type: number
+                      format: float
+                      description: Общая выручка склада
+                      example: 8600.20
